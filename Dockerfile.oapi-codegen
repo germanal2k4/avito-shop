@@ -1,0 +1,10 @@
+FROM golang:1.22-alpine as builder
+RUN apk add --no-cache git
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+RUN cp "$(go env GOPATH)/bin/oapi-codegen" /oapi-codegen
+
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates
+COPY --from=builder /oapi-codegen /usr/local/bin/oapi-codegen
+RUN chmod +x /usr/local/bin/oapi-codegen
+ENTRYPOINT ["/usr/local/bin/oapi-codegen"]

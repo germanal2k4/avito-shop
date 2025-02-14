@@ -1,25 +1,6 @@
 version: '3.8'
 
 services:
-  avito-shop-service:
-    build: .
-    container_name: avito-shop-service
-    ports:
-      - "8080:8080"
-    environment:
-      - DATABASE_PORT=5432
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=password
-      - DATABASE_NAME=shop
-      - DATABASE_HOST=db
-      - SERVER_PORT=8080
-      - JWT_SECRET=secret
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - internal
-
   db:
     image: postgres:13
     container_name: postgres
@@ -27,12 +8,13 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: shop
-    volumes:
-      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations/0001_init.sql:/docker-entrypoint-initdb.d/0001_init.sql
     healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U postgres -d shop'"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shop"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -40,5 +22,27 @@ services:
     networks:
       - internal
 
+  avito-shop-service:
+    build: .
+    container_name: avito-shop-service
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: password
+      DATABASE_NAME: shop
+      SERVER_PORT: 8080
+      JWT_SECRET: secret
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
 networks:
   internal:
+
+volumes:
+  pgdata:

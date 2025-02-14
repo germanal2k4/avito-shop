@@ -14,6 +14,7 @@ type Config struct {
 	JWTSecret        string
 }
 
+// функция для инициализации конфига с возможностью подтянуть все из .env
 func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		DatabaseHost:     getEnv("DATABASE_HOST", "localhost"),

@@ -4,7 +4,14 @@ linters:
   enable:
     - govet
     - gofmt
-    - golint
     - staticcheck
     - errcheck
     - gocritic
+    - funlen
+    - gocyclo
+linters-settings:
+  funlen:
+    lines: 130
+    statements: 60
+  gocyclo:
+    min-complexity: 15

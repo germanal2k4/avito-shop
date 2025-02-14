@@ -4,6 +4,7 @@ WORKDIR ${GOPATH}/avito-shop/
 COPY . ${GOPATH}/avito-shop/
 
 RUN make generate && \
+    go test ./... && \
     go build -o /build ./cmd && \
     go clean -cache -modcache
 

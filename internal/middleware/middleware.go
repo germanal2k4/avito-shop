@@ -4,34 +4,37 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
+	"avito-shop/pkg"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/labstack/echo/v4"
 )
 
-func JWTAuthMiddleware(secret string, logger *zap.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"errors": "Authorization header missing"})
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
+// инициализация миддлвары
+func JWTAuthMiddleware(secret string, log pkg.Logger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// получаем из контекста сложенную туда информацию
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"errors": "Authorization header missing"})
 			}
-			return []byte(secret), nil
-		})
 
-		if err != nil || !token.Valid {
-			logger.Warn("Invalid JWT token", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"errors": "Invalid token"})
-			return
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			// проверка подмены токена
+			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, jwt.ErrSignatureInvalid
+				}
+				return []byte(secret), nil
+			})
+			// проверка валидности токена
+			if err != nil || !token.Valid {
+				log.Warn("Invalid JWT token")
+				return c.JSON(http.StatusUnauthorized, map[string]string{"errors": "Invalid token"})
+			}
+			// добавление пользователя в контекст
+			c.Set("user", token.Claims)
+			return next(c)
 		}
-
-		c.Set("user", token.Claims)
-		c.Next()
 	}
 }
