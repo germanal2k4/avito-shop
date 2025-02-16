@@ -47,6 +47,10 @@
 ```
 ## Руководство по запуску программы
 ## Запуск через Docker
+В корне проекта соберите файл Dockerfile.oapi-codegen
+```bash
+docker build -f Dockerfile.oapi-codegen -t local/oapi-codegen 
+```
 В корневой директории проекта выполните команду:
 ```bash
 docker-compose up --build
