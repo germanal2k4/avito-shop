@@ -40,9 +40,27 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 func createTestServer(dbConn *sql.DB, cfg *config.Config, log pkg.Logger) *echo.Echo {
 	e := echo.New()
-	e.Use(middleware.JWTAuthMiddleware(cfg.JWTSecret, log))
-	apiImpl := service.NewEchoAPI(dbConn, cfg.JWTSecret, log)
-	api.RegisterHandlers(e, apiImpl)
+	zapLogger, _ := zap.NewProduction()
+	defer func(logger *zap.Logger) {
+		_ = logger.Sync()
+	}(zapLogger)
+	logger := pkg.NewZapLogger(zapLogger)
+
+	authDB := db.NewAuthDB(dbConn)
+	coinDB := db.NewCoinInventoryDB(dbConn)
+
+	authService := service.NewAuthService(authDB, logger, cfg.JWTSecret)
+	shopService := service.NewShopService(coinDB, logger)
+	e.Use(middleware.JWTAuthMiddleware(cfg.JWTSecret, zapLogger))
+
+	handlers := &api.Handlers{
+		AuthService: authService,
+		ShopService: shopService,
+		Logger:      logger,
+		JWTSecret:   cfg.JWTSecret,
+	}
+
+	api.RegisterHandlers(e, handlers)
 	return e
 }
 

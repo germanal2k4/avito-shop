@@ -8,7 +8,33 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Функция для подключения к базе данных инфорация для дебага и пинг, чтобы проверить что она жива
+type CoinInventoryDB interface {
+	BeginTx() (*sql.Tx, error)
+	GetCoinsForUpdate(tx *sql.Tx, userID int) (int, error)
+	IncreaseCoins(tx *sql.Tx, userID, amount int) error
+	DecreaseCoins(tx *sql.Tx, userID, amount int) error
+	IncreaseItem(tx *sql.Tx, userID int, item string, delta int) error
+	InsertTransaction(tx *sql.Tx, userID int, transactionType, counterparty string, amount int) error
+	InsertReceivedTransaction(tx *sql.Tx, toUserID, fromUserID, amount int) error
+	GetUserIDByUsernameForUpdate(tx *sql.Tx, username string) (int, error)
+	GetUserCoins(userID int) (int, error)
+	GetInventory(userID int) ([]InventoryItem, error)
+	GetTransactions(userID int, transactionType string) ([]Transaction, error)
+}
+type InventoryItem struct {
+	Type     string
+	Quantity int
+}
+
+type Transaction struct {
+	Counterparty string
+	Amount       int
+}
+
+type AuthDB interface {
+	GetUserAuthData(username string) (int, string, error)
+}
+
 func Connect(cfg *config.Config) (*sql.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DatabaseHost,
